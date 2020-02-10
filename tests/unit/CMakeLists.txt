@@ -1,0 +1,1 @@
+package_add_test(FeedlyClient_unit_test FeedlyClient.cpp)
