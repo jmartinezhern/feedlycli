@@ -19,6 +19,7 @@
 #ifndef FEEDLYCLI_CLIENTS_FEEDLY_HPP
 #define FEEDLYCLI_CLIENTS_FEEDLY_HPP
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -35,13 +36,24 @@ struct DeveloperTokenCredentials : Credentials {
     std::string user_id;
 };
 
+struct Feed {
+    std::string id = "";
+    std::optional<std::string> title;
+    std::string website = "";
+    std::string visual_url = "";
+    int updated = 0;
+    int added = 0;
+
+    bool operator==(const Feed &f) const { return id == f.id && website == f.website; }
+};
+
+using Feeds = std::vector<Feed>;
+
 struct Category {
     std::string id = "";
     std::string label = "";
 
-    bool operator==(const Category &b) const {
-        return id == b.id && label == b.label;
-    }
+    bool operator==(const Category &b) const { return id == b.id && label == b.label; }
 };
 
 using Categories = std::vector<Category>;
@@ -50,9 +62,15 @@ class Client {
   public:
     explicit Client(DeveloperTokenCredentials credentials);
 
+    Feed subscribe(const Feed &feed, const Categories &ctgs = {}) const;
+
     Category create_category(const Category &ctg) const;
 
     [[nodiscard]] Categories categories() const;
+
+    Feeds subscriptions() const;
+
+    Feeds subscriptions(const std::string &category_id) const;
 
   private:
     static constexpr const char *s_url = "https://cloud.feedly.com/v3";

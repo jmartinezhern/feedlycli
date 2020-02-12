@@ -18,6 +18,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdlib>
+#include <exception>
 #include <random>
 
 #include <catch2/catch.hpp>
@@ -34,17 +35,109 @@ int random_int_in_range(int a, int b) {
     return dis(gen);
 }
 
-std::string get_access_token() { return std::getenv("FEEDLY_ACCESS_TOKEN"); }
+std::string get_access_token() {
+    char *env = std::getenv("FEEDLY_ACCESS_TOKEN");
+    if (env == nullptr) {
+        throw std::runtime_error("missing access token");
+    }
 
-SCENARIO("Get Categories") {
-    GIVEN("An authenticate client") {
-        feedly::Client client{
-            {.developer_token = get_access_token(), .user_id = "b809d8d9-6784-41b7-9f20-d4fc4307e175"}};
+    return env;
+}
 
-        AND_GIVEN("an existing category") {
+std::string get_user_id() {
+    char *env = std::getenv("FEEDLY_USER_ID");
+    if (env == nullptr) {
+        throw std::runtime_error("missing user id");
+    }
+
+    return env;
+}
+
+feedly::DeveloperTokenCredentials get_token() {
+    return {.developer_token = get_access_token(), .user_id = get_user_id()};
+};
+
+SCENARIO("Subscribe to a feed") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it makes a subscription request") {
+            std::string url = "https://www.eff.org/rss/updates.xml";
+            auto feed = client.subscribe({.website = url});
+
+            THEN("it returns a feed") {
+                REQUIRE_FALSE(feed.id.empty());
+                REQUIRE(feed.website == url);
+            }
+        }
+    }
+}
+
+SCENARIO("List subscriptions") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it subscribes to a feed") {
+            std::string url = "https://www.eff.org/rss/updates.xml";
+            auto feed = client.subscribe({.website = url});
+
+            AND_WHEN("it lists all feeds") {
+                auto feeds = client.subscriptions();
+
+                THEN("it returns the feed it subscribed to") { REQUIRE_THAT(feeds, VectorContains(feed)); }
+            }
+        }
+    }
+}
+
+SCENARIO("Subscribe to a feed and set custom title") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it makes a subscription request with a custom title") {
+            std::string url = "https://www.eff.org/rss/updates.xml";
+            auto feed = client.subscribe({.title = "My Custom Title", .website = url});
+
+            THEN("it returns a feed") {
+                REQUIRE_FALSE(feed.id.empty());
+                REQUIRE(feed.website == url);
+                REQUIRE(feed.title == "My Custom Title");
+            }
+        }
+    }
+}
+
+SCENARIO("Subscribe to a feed with a category") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it creates a category") {
             auto ctg = client.create_category({.label = "test" + std::to_string(random_int_in_range(0, 999999999))});
 
-            WHEN("the client gets categories") {
+            AND_WHEN("it subscribes to a feed given the category") {
+                std::string url = "https://www.eff.org/rss/updates.xml";
+                auto feed = client.subscribe({.website = url}, {{.id = ctg.id}});
+
+                AND_WHEN("it lists the feeds by that category") {
+                    auto feeds = client.subscriptions(ctg.id);
+
+                    THEN("it returns a list containing the subscribed feed") {
+                        REQUIRE_THAT(feeds, VectorContains(feed));
+                    }
+                }
+            }
+        }
+    }
+}
+
+SCENARIO("Get Categories") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it creates a category") {
+            auto ctg = client.create_category({.label = "test" + std::to_string(random_int_in_range(0, 999999999))});
+
+            AND_WHEN("it gets all categories") {
                 auto ctgs = client.categories();
 
                 THEN("it returns a list of categories containing the created category") {
