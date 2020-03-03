@@ -23,6 +23,8 @@
 using json = nlohmann::json;
 
 namespace feedly {
+const Page Client::default_page = {.count = 20, .continuation_id = "", .sort_by_oldest = false, .rank = Rank::Newest};
+
 Client::Client(DeveloperTokenCredentials credentials)
     : m_creds{std::move(credentials)}, m_auth_header{cpr::Header{
                                            {"Authorization", "OAuth " + std::move(m_creds.developer_token)}}} {}
@@ -127,6 +129,54 @@ Feeds Client::subscriptions(const std::string &category_id) const {
     }
 
     return feeds;
+}
+
+Entries Client::stream(const std::string &stream_id, const Page &page) const {
+    auto r =
+        cpr::Get(cpr::Url{std::string(Client::s_url) + "/streams/" + cpr::util::urlEncode(stream_id) + "/contents"},
+                 m_auth_header, page_parameters(page));
+
+    if (r.status_code not_eq 200) {
+        std::string error = "Could not get entries: " + std::to_string(r.status_code);
+        throw std::runtime_error(error.c_str());
+    }
+
+    auto j = json::parse(r.text);
+
+    Entries entries;
+    for (auto &item : j["items"]) {
+        entries.push_back({item["id"], item["title"], item["summary"]["content"], item["origin"]["streamId"],
+                           item["origin"]["htmlUrl"], item["origin"]["title"]});
+    }
+
+    return entries;
+}
+
+cpr::Parameters Client::page_parameters(const feedly::Page &page) const {
+    auto reqParams =
+        cpr::Parameters({{"unread_only", page.unread_only ? "true" : "false"}, {"count", std::to_string(page.count)}});
+
+    switch (page.rank) {
+    case Rank::Newest:
+        reqParams.AddParameter({"ranked", "newest"});
+        break;
+    case Rank::Oldest:
+        reqParams.AddParameter({"ranked", "oldest"});
+        break;
+    case Rank::Engagement:
+        reqParams.AddParameter({"ranked", "engagement"});
+        break;
+    }
+
+    if (not page.continuation_id.empty()) {
+        reqParams.AddParameter({"continuation", page.continuation_id});
+    }
+
+    if (page.newer_than > 0) {
+        reqParams.AddParameter({"newer_than", std::to_string(page.newer_than)});
+    }
+
+    return reqParams;
 }
 
 } // namespace feedly

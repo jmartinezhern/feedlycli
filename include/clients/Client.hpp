@@ -27,11 +27,7 @@
 
 namespace feedly {
 
-struct Credentials {
-    std::string user_id;
-};
-
-struct DeveloperTokenCredentials : Credentials {
+struct DeveloperTokenCredentials {
     std::string developer_token;
     std::string user_id;
 };
@@ -58,22 +54,62 @@ struct Category {
 
 using Categories = std::vector<Category>;
 
+struct Entry {
+    std::string id = "";
+    std::string title = "";
+    std::string content = "";
+    std::string origin_id = "";
+    std::string origin_url = "";
+    std::string origin_title = "";
+};
+
+using Entries = std::vector<Entry>;
+
+enum class Rank { Newest, Oldest, Engagement };
+
+struct Page {
+    Rank rank;
+    bool sort_by_oldest;
+    bool unread_only;
+    unsigned int count;
+    unsigned int newer_than;
+    std::string continuation_id;
+};
+
 class Client {
   public:
+    static const Page default_page;
+
     explicit Client(DeveloperTokenCredentials credentials);
 
-    Feed subscribe(const Feed &feed, const Categories &ctgs = {}) const;
+    [[nodiscard]] Feed subscribe(const Feed &feed, const Categories &ctgs = {}) const;
 
-    Category create_category(const Category &ctg) const;
+    [[nodiscard]] Category create_category(const Category &ctg) const;
 
     [[nodiscard]] Categories categories() const;
 
-    Feeds subscriptions() const;
+    [[nodiscard]] Feeds subscriptions() const;
 
-    Feeds subscriptions(const std::string &category_id) const;
+    [[nodiscard]] Feeds subscriptions(const std::string &category_id) const;
+
+    [[nodiscard]] Entries stream(const std::string &stream_id, const Page &page = Client::default_page) const;
+
+    [[nodiscard]] Entries all_stream(const Page &page = Client::default_page) const {
+        return stream("user/" + m_creds.user_id + "/category/global.all", page);
+    }
+
+    [[nodiscard]] Entries uncategorized_stream(const Page &page = Client::default_page) const {
+        return stream("user/" + m_creds.user_id + "/category/global.uncategorized", page);
+    }
+
+    [[nodiscard]] Entries saved_stream(const Page &page) const {
+        return stream("user/" + m_creds.user_id + "/tag/global.saved", page);
+    }
 
   private:
     static constexpr const char *s_url = "https://cloud.feedly.com/v3";
+
+    [[nodiscard]] cpr::Parameters page_parameters(const Page &page) const;
 
     DeveloperTokenCredentials m_creds;
 

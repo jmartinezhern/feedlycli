@@ -141,10 +141,27 @@ SCENARIO("Get Categories") {
                 auto ctgs = client.categories();
 
                 THEN("it returns a list of categories containing the created category") {
-                    REQUIRE(ctgs.size() > 0);
+                    REQUIRE(!ctgs.empty());
 
                     REQUIRE_THAT(ctgs, VectorContains(ctg));
                 }
+            }
+        }
+    }
+}
+
+SCENARIO("Fetch entries from stream") {
+    GIVEN("An authenticated client") {
+        feedly::Client client{get_token()};
+
+        WHEN("it subscribes to a feed") {
+            std::string url = "https://www.eff.org/rss/updates.xml";
+            auto feed = client.subscribe({.website = url});
+
+            AND_WHEN("it fetches a stream for the feed") {
+                auto entries = client.stream(feed.id);
+
+                THEN("the entries list should be non empty") { REQUIRE(!entries.empty()); }
             }
         }
     }
