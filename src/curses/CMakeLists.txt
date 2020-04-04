@@ -13,17 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.15)
-project(feedlycli)
+set(CURSES_NEED_NCURSES TRUE)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Curses REQUIRED)
+find_library(MENU_LIBRARY menu)
+find_library(PANEL_LIBRARY panel)
 
-option(BUILD_TESTS "Build tests" ON)
-option(BUILD_TEST_CURSES_COMPONENTS "Build tests binaries for curses components" ON)
-
-add_subdirectory(src)
-
-if (BUILD_TESTS)
-    add_subdirectory(tests)
-endif ()
+add_subdirectory(components)
