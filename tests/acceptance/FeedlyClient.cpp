@@ -18,7 +18,6 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdlib>
-#include <exception>
 #include <random>
 
 #include <catch2/catch.hpp>
@@ -35,31 +34,22 @@ int random_int_in_range(int a, int b) {
     return dis(gen);
 }
 
-std::string get_access_token() {
-    char *env = std::getenv("FEEDLY_ACCESS_TOKEN");
+std::string get_env(const std::string &name) {
+    char *env = std::getenv(name.c_str());
     if (env == nullptr) {
-        throw std::runtime_error("missing access token");
+        throw std::runtime_error("missing " + name);
     }
 
     return env;
 }
 
-std::string get_user_id() {
-    char *env = std::getenv("FEEDLY_USER_ID");
-    if (env == nullptr) {
-        throw std::runtime_error("missing user id");
-    }
-
-    return env;
-}
-
-feedly::DeveloperTokenCredentials get_token() {
-    return {.developer_token = get_access_token(), .user_id = get_user_id()};
+feedly::DeveloperTokenCredentials get_credentials() {
+    return {.developer_token = get_env("FEEDLY_ACCESS_TOKEN"), .user_id = get_env("FEEDLY_USER_ID")};
 };
 
 SCENARIO("Subscribe to a feed") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it makes a subscription request") {
             std::string url = "https://www.eff.org/rss/updates.xml";
@@ -75,7 +65,7 @@ SCENARIO("Subscribe to a feed") {
 
 SCENARIO("List subscriptions") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it subscribes to a feed") {
             std::string url = "https://www.eff.org/rss/updates.xml";
@@ -92,7 +82,7 @@ SCENARIO("List subscriptions") {
 
 SCENARIO("Subscribe to a feed and set custom title") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it makes a subscription request with a custom title") {
             std::string url = "https://www.eff.org/rss/updates.xml";
@@ -109,7 +99,7 @@ SCENARIO("Subscribe to a feed and set custom title") {
 
 SCENARIO("Subscribe to a feed with a category") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it creates a category") {
             auto ctg = client.create_category({.label = "test" + std::to_string(random_int_in_range(0, 999999999))});
@@ -132,7 +122,7 @@ SCENARIO("Subscribe to a feed with a category") {
 
 SCENARIO("Get Categories") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it creates a category") {
             auto ctg = client.create_category({.label = "test" + std::to_string(random_int_in_range(0, 999999999))});
@@ -152,7 +142,7 @@ SCENARIO("Get Categories") {
 
 SCENARIO("Fetch entries from stream") {
     GIVEN("An authenticated client") {
-        feedly::Client client{get_token()};
+        feedly::Client client{get_credentials()};
 
         WHEN("it subscribes to a feed") {
             std::string url = "https://www.eff.org/rss/updates.xml";

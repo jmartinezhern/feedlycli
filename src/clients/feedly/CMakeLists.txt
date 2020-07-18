@@ -19,10 +19,12 @@ include(FetchContent)
 
 set(USE_SYSTEM_CURL ON CACHE BOOL "" FORCE)
 set(BUILD_CPR_TESTS OFF CACHE BOOL "")
+set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
         cpr
         GIT_REPOSITORY https://github.com/whoshuu/cpr.git
+        GIT_TAG 1.4.0
 )
 
 FetchContent_GetProperties(cpr)
