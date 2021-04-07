@@ -1,4 +1,4 @@
-# Copyright (C) 2020 Jorge Martinez Hernandez <me@jmartinezhern.com>
+# Copyright (C) 2021 Jorge Martinez Hernandez <me@jmartinezhern.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,6 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_subdirectory(clients)
-add_subdirectory(cui)
-add_subdirectory(cli)
+set(CURSES_NEED_NCURSES TRUE)
+
+find_package(Curses REQUIRED)
+find_library(MENU_LIBRARY menu)
+find_library(PANEL_LIBRARY panel)
+
+add_library(CUIViews STATIC Application.cpp CategoriesView.cpp PostsView.cpp utils.cpp)
+target_include_directories(CUIViews PRIVATE ${PROJECT_SOURCE_DIR}/include ${CPR_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
+target_link_libraries(CUIViews PRIVATE FeedlyClient ${MENU_LIBRARY} ${PANEL_LIBRARY} ${CURSES_LIBRARIES})

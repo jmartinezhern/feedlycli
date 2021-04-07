@@ -23,7 +23,7 @@
 using json = nlohmann::json;
 
 namespace feedly {
-const Page Client::default_page = {.count = 20, .continuation_id = "", .sort_by_oldest = false, .rank = Rank::Newest};
+const Page Client::default_page = {.rank = Rank::Newest, .sort_by_oldest = false, .count = 20, .continuation_id = ""};
 
 Client::Client(DeveloperTokenCredentials credentials)
     : m_creds{std::move(credentials)}, m_auth_header{cpr::Header{
@@ -152,7 +152,7 @@ Entries Client::stream(const std::string &stream_id, const Page &page) const {
     return entries;
 }
 
-cpr::Parameters Client::page_parameters(const feedly::Page &page) const {
+cpr::Parameters Client::page_parameters(const feedly::Page &page) {
     auto reqParams =
         cpr::Parameters({{"unread_only", page.unread_only ? "true" : "false"}, {"count", std::to_string(page.count)}});
 

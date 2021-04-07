@@ -33,10 +33,10 @@ struct DeveloperTokenCredentials {
 };
 
 struct Feed {
-    std::string id = "";
+    std::string id;
     std::optional<std::string> title;
-    std::string website = "";
-    std::string visual_url = "";
+    std::string website;
+    std::string visual_url;
     int updated = 0;
     int added = 0;
 
@@ -46,8 +46,8 @@ struct Feed {
 using Feeds = std::vector<Feed>;
 
 struct Category {
-    std::string id = "";
-    std::string label = "";
+    std::string id;
+    std::string label;
 
     bool operator==(const Category &b) const { return id == b.id && label == b.label; }
 };
@@ -55,12 +55,12 @@ struct Category {
 using Categories = std::vector<Category>;
 
 struct Entry {
-    std::string id = "";
-    std::string title = "";
-    std::string content = "";
-    std::string origin_id = "";
-    std::string origin_url = "";
-    std::string origin_title = "";
+    std::string id;
+    std::string title;
+    std::string content;
+    std::string origin_id;
+    std::string origin_url;
+    std::string origin_title;
 };
 
 using Entries = std::vector<Entry>;
@@ -109,7 +109,7 @@ class Client {
   private:
     static constexpr const char *s_url = "https://cloud.feedly.com/v3";
 
-    [[nodiscard]] cpr::Parameters page_parameters(const Page &page) const;
+    [[nodiscard]] static cpr::Parameters page_parameters(const Page &page) ;
 
     DeveloperTokenCredentials m_creds;
 
