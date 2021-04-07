@@ -15,6 +15,8 @@
 
 enable_testing()
 
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -35,7 +37,7 @@ include(Catch)
 
 macro(package_add_test TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})
-    target_link_libraries(${TEST_NAME} Catch2::Catch2 FeedlyClient)
+    target_link_libraries(${TEST_NAME} PRIVATE Catch2::Catch2 FeedlyClient nlohmann_json::nlohmann_json)
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include ${CPR_INCLUDE_DIRS})
     catch_discover_tests(${TEST_NAME}
             WORKING_DIRECTORY ${PROJECT_DIR}

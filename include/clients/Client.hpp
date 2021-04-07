@@ -80,7 +80,7 @@ class Client {
   public:
     static const Page default_page;
 
-    explicit Client(DeveloperTokenCredentials credentials);
+    explicit Client(DeveloperTokenCredentials credentials, std::string url = "https://cloud.feedly.com/v3");
 
     [[nodiscard]] Feed subscribe(const Feed &feed, const Categories &ctgs = {}) const;
 
@@ -107,9 +107,9 @@ class Client {
     }
 
   private:
-    static constexpr const char *s_url = "https://cloud.feedly.com/v3";
+    [[nodiscard]] static cpr::Parameters page_parameters(const Page &page);
 
-    [[nodiscard]] static cpr::Parameters page_parameters(const Page &page) ;
+    std::string m_url;
 
     DeveloperTokenCredentials m_creds;
 

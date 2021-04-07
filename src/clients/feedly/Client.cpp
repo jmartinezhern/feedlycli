@@ -25,9 +25,9 @@ using json = nlohmann::json;
 namespace feedly {
 const Page Client::default_page = {.rank = Rank::Newest, .sort_by_oldest = false, .count = 20, .continuation_id = ""};
 
-Client::Client(DeveloperTokenCredentials credentials)
-    : m_creds{std::move(credentials)}, m_auth_header{cpr::Header{
-                                           {"Authorization", "OAuth " + std::move(m_creds.developer_token)}}} {}
+Client::Client(DeveloperTokenCredentials credentials, std::string url)
+    : m_url{std::move(url)}, m_creds{std::move(credentials)},
+      m_auth_header{cpr::Header{{"Authorization", "OAuth " + std::move(m_creds.developer_token)}}} {}
 
 Feed Client::subscribe(const Feed &feed, const Categories &ctgs) const {
     json j;
@@ -45,7 +45,7 @@ Feed Client::subscribe(const Feed &feed, const Categories &ctgs) const {
     auto header = m_auth_header;
     header["Content-Type"] = "application/json";
 
-    auto r = cpr::Post(cpr::Url{std::string(s_url) + "/subscriptions"}, header, cpr::Body{j.dump()});
+    auto r = cpr::Post(cpr::Url{std::string(m_url) + "/subscriptions"}, header, cpr::Body{j.dump()});
 
     if (r.status_code not_eq 200) {
         std::string error = "Could not add subscription: " + std::to_string(r.status_code);
@@ -64,7 +64,7 @@ Category Client::create_category(const Category &ctg) const {
     auto header = m_auth_header;
     header["Content-Type"] = "application/json";
 
-    auto r = cpr::Post(cpr::Url{std::string(s_url) + "/collections"}, header, cpr::Body{j.dump()});
+    auto r = cpr::Post(cpr::Url{std::string(m_url) + "/collections"}, header, cpr::Body{j.dump()});
 
     if (r.status_code not_eq 200) {
         std::string error = "Could not create category: " + std::to_string(r.status_code);
@@ -77,7 +77,7 @@ Category Client::create_category(const Category &ctg) const {
 }
 
 Categories Client::categories() const {
-    auto r = cpr::Get(cpr::Url{std::string(Client::s_url) + "/categories"}, m_auth_header);
+    auto r = cpr::Get(cpr::Url{std::string(Client::m_url) + "/categories"}, m_auth_header);
 
     if (r.status_code not_eq 200) {
         std::string error = "Could not get categories: " + std::to_string(r.status_code);
@@ -95,7 +95,7 @@ Categories Client::categories() const {
 }
 
 Feeds Client::subscriptions() const {
-    auto r = cpr::Get(cpr::Url{std::string(Client::s_url) + "/subscriptions"}, m_auth_header);
+    auto r = cpr::Get(cpr::Url{std::string(Client::m_url) + "/subscriptions"}, m_auth_header);
 
     if (r.status_code not_eq 200) {
         std::string error = "Could not get feeds: " + std::to_string(r.status_code);
@@ -113,7 +113,7 @@ Feeds Client::subscriptions() const {
 }
 
 Feeds Client::subscriptions(const std::string &category_id) const {
-    auto r = cpr::Get(cpr::Url{std::string(Client::s_url) + "/collections/" + cpr::util::urlEncode(category_id)},
+    auto r = cpr::Get(cpr::Url{std::string(Client::m_url) + "/collections/" + cpr::util::urlEncode(category_id)},
                       m_auth_header);
 
     if (r.status_code not_eq 200) {
@@ -133,7 +133,7 @@ Feeds Client::subscriptions(const std::string &category_id) const {
 
 Entries Client::stream(const std::string &stream_id, const Page &page) const {
     auto r =
-        cpr::Get(cpr::Url{std::string(Client::s_url) + "/streams/" + cpr::util::urlEncode(stream_id) + "/contents"},
+        cpr::Get(cpr::Url{std::string(Client::m_url) + "/streams/" + cpr::util::urlEncode(stream_id) + "/contents"},
                  m_auth_header, page_parameters(page));
 
     if (r.status_code not_eq 200) {
