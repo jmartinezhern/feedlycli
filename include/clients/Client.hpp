@@ -37,8 +37,8 @@ struct Feed {
     std::optional<std::string> title;
     std::string website;
     std::string visual_url;
-    int updated = 0;
-    int added = 0;
+    long updated = 0;
+    long added = 0;
 
     bool operator==(const Feed &f) const { return id == f.id && website == f.website; }
 };
