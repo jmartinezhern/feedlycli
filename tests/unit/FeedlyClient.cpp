@@ -25,6 +25,9 @@
 
 #include <clients/Client.hpp>
 
+using Catch::Matchers::Equals;
+using nlohmann::json;
+
 feedly::DeveloperTokenCredentials mock_creds{
     .developer_token = "developer_token",
     .user_id = "user-id",
@@ -32,8 +35,66 @@ feedly::DeveloperTokenCredentials mock_creds{
 
 std::string mock_server_host{"http://localhost:1234"};
 
-using Catch::Matchers::Equals;
-using nlohmann::json;
+SCENARIO("Subscribe to a feed") {
+    GIVEN("A mock HTTP server") {
+        httplib::Server svr;
+
+        json data = {{
+            {"categories",
+             {{{"id", "user/c805fcbf-3acf-4302-a97e-d82f9d7c897f/category/design"}, {"label", "design"}},
+              {{"id", "user/c805fcbf-3acf-4302-a97e-d82f9d7c897f/category/global.must"}, {"label", "must reads"}}}},
+            {"id", "feed/http://feeds.feedburner.com/design-milk"},
+            {"title", "Design Milk"},
+            {"updated", 1367539068016},
+            {"website", "http://design-milk.com"},
+            {"visualUrl",
+             "http://pbs.twimg.com/profile_images/1765276661/DMLogoTM-carton-icon-facebook-twitter_bigger.jpg"}}};
+
+        svr.Post("/subscriptions", [&data](const httplib::Request &req, httplib::Response &res) {
+            REQUIRE_THAT(req.get_header_value("Authorization"), Equals("OAuth " + mock_creds.developer_token));
+
+            auto body = json::parse(req.body);
+
+            REQUIRE_THAT(body["id"], Equals(data[0]["id"]));
+            REQUIRE_THAT(body["categories"][0]["id"], Equals(data[0]["categories"][0]["id"]));
+            REQUIRE_THAT(body["categories"][0]["label"], Equals(data[0]["categories"][0]["label"]));
+            REQUIRE_THAT(body["categories"][1]["id"], Equals(data[0]["categories"][1]["id"]));
+            REQUIRE_THAT(body["categories"][1]["label"], Equals(data[0]["categories"][1]["label"]));
+
+            res.status = 200;
+
+            res.set_content(data.dump(), "application/json");
+        });
+
+        auto ft = std::async(std::launch::async, [&svr]() { svr.listen("localhost", 1234); });
+
+        AND_GIVEN("a feedly client configured against the mock server") {
+            feedly::Client client{mock_creds, mock_server_host};
+
+            WHEN("the client makes an HTTP request") {
+                THEN("the client responds with the subscribed feed") {
+                    feedly::Feed feed{
+                        .title = "Design Milk",
+                        .website = "http://feeds.feedburner.com/design-milk",
+                    };
+
+                    auto resp = client.subscribe(
+                        feed, {{.id = data[0]["categories"][0]["id"], .label = data[0]["categories"][0]["label"]},
+                               {.id = data[0]["categories"][1]["id"], .label = data[0]["categories"][1]["label"]}});
+
+                    REQUIRE_THAT(resp.id, Equals(data[0]["id"]));
+                    REQUIRE_THAT(resp.title.value(), Equals(data[0]["title"]));
+                    REQUIRE_THAT(resp.visual_url, Equals(data[0]["visualUrl"]));
+                    REQUIRE_THAT(resp.website, Equals(data[0]["website"]));
+                    REQUIRE(resp.updated == data[0]["updated"]);
+
+                    svr.stop();
+                    ft.wait();
+                }
+            }
+        }
+    }
+}
 
 SCENARIO("Make a create category request") {
     GIVEN("A mock HTTP server") {
